@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valid8 Clinical Pre-Triage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tealink: { DEFAULT: "#0e6b6c", dark: "#0a5253", mist: "#e7f4f4" },
+            slateink: "#1e293b",
+            lavender: "#9aa3c7"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui"],
+            mono: ["JetBrains Mono", "ui-monospace", "monospace"]
+          },
+          boxShadow: {
+            station: "0 10px 40px -18px rgba(14, 107, 108, 0.35)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; --ink: #173b3b; --muted: #5e7270; --line: #dce7e3; --accent: #157a70; }
+    html, body { font-family: "Plus Jakarta Sans", sans-serif; }
+    body { background-color: #f2f7f5; background-image: radial-gradient(#c8d8d3 0.7px, transparent 0.7px); background-size: 18px 18px; }
+    button, input, select, textarea { transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease, transform 140ms ease; }
+    :focus-visible { outline: 3px solid #55b6a5; outline-offset: 2px; }
+    .tab-panel:not(.hidden) { animation: panel-in 220ms ease-out; }
+    .case-btn[aria-pressed="true"] { border-color: #157a70; box-shadow: inset 0 0 0 1px #157a70; background-color: #e7f4f1; }
+    @keyframes panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .chip { animation: chip-in 180ms ease-out; }
+    @keyframes chip-in {
+      from { transform: translateY(4px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    #scope-canvas, #lid-preview { image-rendering: auto; }
+    @media print {
+      body { background: #fff !important; }
+      .no-print { display: none !important; }
+      #print-sheet { display: block !important; position: static !important; box-shadow: none !important; border: 1px solid #1e293b; }
+      main, header, footer, nav { display: none !important; }
+      .print-only { display: block !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    }
+    @media (max-width: 767px) {
+      .primary-nav { flex: 0 0 100% !important; order: 3; overflow: visible; }
+      .primary-nav .primary-tablist { display: grid !important; width: 100% !important; min-width: 0 !important; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .primary-tablist .tab-btn { min-width: 0; padding: 0.55rem 0.3rem; line-height: 1.2; white-space: normal; }
+      .primary-tablist .tab-btn i { display: block; margin: 0 0 0.25rem !important; }
+    }
+    .print-only { display: none; }
+  </style>
+</head>
+<body class="bg-[#eef2f6] text-slateink min-h-screen">
+  <header class="no-print bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-[1440px] mx-auto px-4 lg:px-6 py-3 flex flex-wrap items-center gap-4">
+      <div class="flex items-center gap-3 min-w-[240px]">
+        <img src="Valid8 Logo.png" alt="Valid8 Clinical Pre-Triage" class="h-16 w-24 shrink-0 object-contain" onerror="this.onerror=null; this.src='Valid8/static/logo.png';" />
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight" data-i18n="appTitle">Valid8 Clinical Pre-Triage</h1>
+          <p class="text-xs text-slate-500 font-medium" data-i18n="appSubtitle">Non-diagnostic decision-support prototype</p>
+        </div>
+      </div>
+      <nav class="primary-nav flex-1 flex justify-center overflow-x-auto" aria-label="Primary">
+        <div class="primary-tablist inline-flex min-w-max bg-slate-100 rounded-full p-1 gap-1" role="tablist" aria-label="Valid8 tools">
+          <button type="button" role="tab" aria-selected="true" aria-controls="panel-triage" id="tab-triage" data-tab="triage" class="tab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white text-tealink shadow-sm">
+            <i class="fa-solid fa-stethoscope mr-2"></i><span data-i18n="tabTriage">Triage &amp; SBAR Brief</span>
+          </button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="panel-lidscan" id="tab-lidscan" data-tab="lidscan" class="tab-btn px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900">
+            <i class="fa-solid fa-eye mr-2"></i><span data-i18n="tabLid">LidScan Pallor CV</span>
+          </button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="panel-voice" id="tab-voice" data-tab="voice" class="tab-btn px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900">
+            <i class="fa-solid fa-wave-square mr-2"></i><span data-i18n="tabVoice">Voice Stress Check</span>
+          </button>
+        </div>
+      </nav>
+      <div class="flex items-center gap-2 ml-auto">
+        <button type="button" id="lang-toggle" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-xs font-bold tracking-wide">
+          <i class="fa-solid fa-language text-tealink"></i>
+          <span id="lang-en">EN</span>
+          <span class="text-slate-300">/</span>
+          <span id="lang-hi" class="font-medium text-slate-500">हिन्दी</span>
+        </button>
+        <button type="button" id="reset-btn" class="inline-flex items-center gap-2 rounded-full bg-slate-900 text-white px-4 py-2 text-xs font-bold">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span data-i18n="reset">Reset</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-[1440px] mx-auto px-4 lg:px-6 py-6">
+    <section class="flex flex-wrap items-end justify-between gap-4 pb-5 mb-5 border-b border-emerald-900/10" aria-labelledby="workspace-title">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.18em] font-extrabold text-tealink">VALID8 / CLINICAL WORKSPACE</p>
+        <h2 id="workspace-title" class="text-2xl font-extrabold tracking-tight text-slate-900 mt-1">A clearer hand-off starts here.</h2>
+        <p class="text-sm text-slate-600 mt-1">Capture the story, review the safety gate, and prepare a structured brief.</p>
+      </div>
+    </section>
+    <section id="panel-triage" class="tab-panel" role="tabpanel" aria-labelledby="tab-triage" tabindex="0">
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        <div class="xl:col-span-5 space-y-4">
+          <article class="bg-white rounded-2xl border border-slate-200 shadow-station p-5">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.18em] font-bold text-tealink" data-i18n="naturalIntake">Natural Intake</p>
+                <h2 class="text-xl font-extrabold" data-i18n="chiefComplaints">Chief Complaints</h2>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="chiefHelp">Type or dictate lived symptoms in everyday language. Do not select a diagnosis.</p>
+              </div>
+              <button type="button" id="dictate-btn" class="h-11 w-11 rounded-full bg-tealink text-white shadow-lg" title="Dictate symptoms" aria-label="Dictate symptoms">
+                <i class="fa-solid fa-microphone"></i>
+              </button>
+            </div>
+            <textarea id="symptoms" rows="6" class="patient-input w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-tealink" data-i18n-placeholder="symptomsPh" placeholder="Example: delivery 4 days ago, pads soaking through, feeling faint and dizzy..."></textarea>
+            <div class="mt-3">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2" data-i18n="entities">Clinical entity signals</p>
+              <div id="chip-tray" class="flex flex-wrap gap-2 min-h-[2rem]"></div>
+            </div>
+          </article>
+          <article class="bg-white rounded-2xl border border-slate-200 p-5">
+            <h3 class="font-bold mb-4" data-i18n="homeVitals">Home Vitals</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="text-xs font-semibold text-slate-500 col-span-1">
+                <span data-i18n="heartRate">Heart Rate (bpm)</span>
+                <input id="hr" type="number" min="20" max="250" step="1" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500">
+                <span data-i18n="age">Age (years)</span>
+                <input id="age" type="number" min="1" max="200" step="1" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500">
+                <span data-i18n="sbp">Systolic BP (mmHg)</span>
+                <input id="sbp" type="number" min="40" max="260" step="1" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500">
+                <span data-i18n="dbp">Diastolic BP (mmHg)</span>
+                <input id="dbp" type="number" min="20" max="160" step="1" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500">
+                <span data-i18n="temp">Oral Temp (°F)</span>
+                <input id="temp" type="number" min="90" max="110" step="0.1" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500">
+                <span data-i18n="duration">Symptom duration</span>
+                <input id="duration" type="text" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" data-i18n-placeholder="durationPh" placeholder="e.g. 4 days" />
+              </label>
+              <label class="text-xs font-semibold text-slate-500 col-span-2">
+                <span data-i18n="repro">Reproductive Status</span>
+                <select id="repro" class="patient-input mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                  <option value="non-pregnant" data-i18n="reproNon">Non-pregnant</option>
+                  <option value="gestational" data-i18n="reproGest">Gestational</option>
+                  <option value="postpartum" data-i18n="reproPost">Postpartum</option>
+                  <option value="perimenopause" data-i18n="reproPeri">Perimenopause</option>
+                </select>
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+              <div class="rounded-xl bg-tealink-mist px-4 py-3">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-tealink">MAP</p>
+                <p id="map-live" class="font-mono text-xl font-semibold">—</p>
+                <p class="text-[11px] text-slate-500">DBP + (SBP − DBP) / 3</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 px-4 py-3">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500" data-i18n="pulsePressure">Pulse Pressure</p>
+                <p id="pp-live" class="font-mono text-xl font-semibold">—</p>
+                <p class="text-[11px] text-slate-500">SBP − DBP</p>
+              </div>
+            </div>
+            <button type="button" id="run-triage" class="mt-4 w-full rounded-xl bg-tealink hover:bg-tealink-dark text-white font-bold py-3 disabled:opacity-60 disabled:cursor-wait" aria-describedby="triage-disclaimer">
+              <i class="fa-solid fa-shield-heart mr-2" aria-hidden="true"></i><span id="run-triage-label" data-i18n="generateSbar">Generate SBAR Passport</span>
+            </button>
+            <p id="triage-disclaimer" class="text-[11px] text-slate-500 mt-2 text-center">Rule-based demo output. A qualified clinician must independently assess every patient.</p>
+          </article>
+          <article class="bg-white rounded-2xl border border-slate-200 p-4 no-print">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3" data-i18n="benchmarks">Benchmark cases</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button type="button" data-case="pph" aria-pressed="false" class="case-btn rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-left text-xs font-bold text-rose-800">Postpartum bleeding</button>
+              <button type="button" data-case="minoca" aria-pressed="false" class="case-btn rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-bold text-amber-900">Atypical cardiac symptoms</button>
+              <button type="button" data-case="enteric" aria-pressed="false" class="case-btn rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-left text-xs font-bold text-sky-900">Fever with GI symptoms</button>
+            </div>
+          </article>
+        </div>
+        <div class="xl:col-span-7 space-y-4">
+          <div id="alert-banner" class="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400" data-i18n="safetyAlert">Rule-based safety gate · demo</p>
+            <h3 id="alert-title" class="text-lg font-extrabold mt-1 text-slate-700">Awaiting patient intake</h3>
+            <p id="alert-detail" class="text-sm text-slate-500 mt-1">Complete vitals and a free-text complaint, then generate the SBAR passport. No result is shown until the safety gate runs.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3" aria-live="polite">
+            <div class="bg-white rounded-2xl border border-slate-200 p-4">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400" data-i18n="shockIndex">Shock Index</p>
+              <p id="si-value" class="font-mono text-3xl font-bold mt-1">—</p>
+              <p id="si-badge" class="inline-flex mt-2 text-[11px] font-bold uppercase rounded-full bg-slate-100 px-2 py-1">Idle</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-4">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400" data-i18n="urgencyTier">Triage Urgency Tier</p>
+              <p id="tier-value" class="text-2xl font-extrabold mt-1">—</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-4">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400" data-i18n="hypothesis">Gate triggered</p>
+              <p id="category-value" class="text-lg font-bold mt-1 font-mono">—</p>
+            </div>
+          </div>
+          <article id="sbar-card" class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.18em] font-bold text-tealink">SBAR</p>
+                <h3 class="text-xl font-extrabold" data-i18n="sbarTitle">Physician Hand-Off Passport</h3>
+              </div>
+              <button type="button" id="print-btn" class="no-print rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">
+                <i class="fa-solid fa-file-pdf mr-2 text-rose-600"></i><span data-i18n="printPdf">Print / Export Medical PDF</span>
+              </button>
+            </div>
+            <div class="space-y-3" id="sbar-body">
+              <section class="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                <h4 class="text-xs font-extrabold tracking-widest text-tealink">S · <span data-i18n="sit">Situation</span></h4>
+                <p id="sbar-s" class="text-sm mt-1 text-slate-600">No passport generated yet.</p>
+              </section>
+              <section class="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                <h4 class="text-xs font-extrabold tracking-widest text-tealink">B · <span data-i18n="bg">Background</span></h4>
+                <p id="sbar-b" class="text-sm mt-1 text-slate-600">—</p>
+              </section>
+              <section class="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                <h4 class="text-xs font-extrabold tracking-widest text-tealink">A · <span data-i18n="assess">Assessment</span></h4>
+                <p id="sbar-a" class="text-sm mt-1 text-slate-600">—</p>
+              </section>
+              <section class="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                <h4 class="text-xs font-extrabold tracking-widest text-tealink">R · <span data-i18n="rec">Recommendation</span></h4>
+                <p id="sbar-r" class="text-sm mt-1 text-slate-600">—</p>
+              </section>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section id="panel-lidscan" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-lidscan" tabindex="0">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <article class="bg-white rounded-2xl border border-slate-200 p-6">
+          <p class="text-[11px] uppercase tracking-[0.18em] font-bold text-tealink" data-i18n="lidKicker">Experimental image tool</p>
+          <h2 class="text-2xl font-extrabold mt-1" data-i18n="lidTitle">LidScan color signal preview</h2>
+          <p class="text-sm text-slate-500 mt-2" data-i18n="lidHelp">Explore a simple color-channel heuristic on an image. It does not identify anatomy or assess anemia; results are unvalidated and for demonstration only. Images are processed in this browser.</p>
+          <label class="mt-5 flex flex-col items-center justify-center min-h-[220px] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:border-tealink">
+            <i class="fa-solid fa-camera-retro text-3xl text-slate-400 mb-3"></i>
+            <span class="text-sm font-semibold" data-i18n="lidUpload">Capture or upload inner eyelid</span>
+            <input id="lid-file" type="file" accept="image/*" class="hidden" />
+          </label>
+          <canvas id="lid-work" class="hidden"></canvas>
+          <img id="lid-preview" alt="" class="hidden mt-4 rounded-xl max-h-56 mx-auto" />
+        </article>
+        <article class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold" data-i18n="lidResult">Color-channel preview</h3>
+          <div id="lid-idle" class="mt-6 rounded-2xl bg-slate-50 border border-slate-100 p-8 text-center text-slate-500">
+            <i class="fa-regular fa-hourglass text-2xl mb-3"></i>
+            <p data-i18n="lidIdle">Idle. No image uploaded.</p>
+          </div>
+          <div id="lid-error" class="hidden mt-6 rounded-2xl bg-rose-50 border border-rose-200 p-5 text-rose-900 text-sm font-semibold"></div>
+          <div id="lid-ok" class="hidden mt-6 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl bg-tealink-mist p-4">
+                <p class="text-[11px] font-bold uppercase text-tealink">Red-channel ratio</p>
+                <p id="ei-value" class="font-mono text-3xl font-bold">—</p>
+                <p class="text-[11px] text-slate-500">EI = R<sub>avg</sub> / ((G<sub>avg</sub> + B<sub>avg</sub>) / 2)</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-4">
+                <p class="text-[11px] font-bold uppercase text-slate-500" data-i18n="mucosalRatio">Mucosal pixel ratio</p>
+                <p id="mucosal-value" class="font-mono text-3xl font-bold">—</p>
+              </div>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-4">
+              <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="pallorClass">Experimental color band</p>
+              <p id="pallor-class" class="text-xl font-extrabold mt-1"></p>
+              <p id="pallor-note" class="text-sm text-slate-500 mt-1"></p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section id="panel-voice" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-voice" tabindex="0">
+      <article class="bg-white rounded-2xl border border-slate-200 p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.18em] font-bold text-tealink" data-i18n="voiceKicker">Experimental live audio</p>
+            <h2 class="text-2xl font-extrabold mt-1" data-i18n="voiceTitle">Voice signal lab</h2>
+            <p class="text-sm text-slate-500 mt-2 max-w-2xl" data-i18n="voiceHelp">Visualizes the live microphone waveform and relative signal level only. It does not detect stress, depression, or any health condition. Starts only after microphone permission.</p>
+          </div>
+          <button type="button" id="mic-btn" class="rounded-xl bg-tealink text-white font-bold px-5 py-3">
+            <i class="fa-solid fa-play mr-2"></i><span data-i18n="startStream">Start Live Stream</span>
+          </button>
+        </div>
+        <div class="mt-6 rounded-2xl bg-[#0b1220] p-4">
+          <canvas id="scope-canvas" class="w-full h-56"></canvas>
+        </div>
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-xl bg-slate-50 p-4">
+            <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="status">Status</p>
+            <p id="mic-status" class="font-semibold" data-i18n="micIdle">Microphone idle</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-4">
+            <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="volumeDb">Relative level (dBFS)</p>
+            <p id="db-value" class="font-mono text-2xl font-bold">— dB</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-4">
+            <p class="text-[11px] font-bold uppercase text-slate-400">RMS</p>
+            <p id="rms-value" class="font-mono text-2xl font-bold">—</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-4">
+            <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="sampleRate">Sample rate</p>
+            <p id="sr-value" class="font-mono text-2xl font-bold">—</p>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <footer class="no-print max-w-[1440px] mx-auto px-4 lg:px-6 pb-8 text-xs text-slate-500">
+    <p data-i18n="disclaimer">Hackathon prototype only. Not validated for clinical use and not a substitute for emergency services, medical examination, laboratory confirmation, or licensed clinical judgment.</p>
+  </footer>
+  <div id="print-sheet" class="print-only p-8 text-slate-900">
+    <div class="flex items-center gap-3 border-b-2 border-tealink pb-3 mb-4">
+      <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true">
+        <rect x="2" y="2" width="60" height="60" rx="14" fill="#eef1f8" stroke="#94a3b8" stroke-width="2"/>
+        <rect x="27" y="10" width="10" height="28" rx="2" fill="#9aa3c7"/>
+        <rect x="18" y="19" width="28" height="10" rx="2" fill="#7d88b0"/>
+        <path d="M8 46 L16 46 L20 38 L26 50 L32 30 L38 44 L44 40 L52 40" fill="none" stroke="#475569" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M40 14 L46 20 L56 8" fill="none" stroke="#0e6b6c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1 class="text-2xl font-extrabold">Valid8 Clinical Consultation Sheet</h1>
+        <p class="text-sm">Non-Diagnostic Safety Firewall &amp; SBAR Physician Hand-Off</p>
+      </div>
+    </div>
+    <p id="print-meta" class="text-sm mb-4"></p>
+    <h2 class="font-bold">Safety Gate</h2>
+    <p id="print-alert" class="text-sm mb-4"></p>
+    <h2 class="font-bold">S — Situation</h2>
+    <p id="print-s" class="text-sm mb-3"></p>
+    <h2 class="font-bold">B — Background</h2>
+    <p id="print-b" class="text-sm mb-3"></p>
+    <h2 class="font-bold">A — Assessment</h2>
+    <p id="print-a" class="text-sm mb-3"></p>
+    <h2 class="font-bold">R — Recommendation</h2>
+    <p id="print-r" class="text-sm mb-3"></p>
+  </div>
+  <script>
+    const I18N = {
+      en: {
+        appTitle: "Valid8 Clinical Pre-Triage",
+        appSubtitle: "Non-diagnostic decision-support prototype",
+        tabTriage: "Triage & SBAR Brief",
+        tabLid: "LidScan Color Preview",
+        tabVoice: "Voice Signal Lab",
+        reset: "Reset",
+        naturalIntake: "Natural Intake",
+        chiefComplaints: "Chief Complaints",
+        chiefHelp: "Type or dictate lived symptoms in everyday language. Do not select a diagnosis.",
+        symptomsPh: "Example: delivery 4 days ago, pads soaking through, feeling faint and dizzy...",
+        entities: "Clinical entity signals",
+        homeVitals: "Home Vitals",
+        heartRate: "Heart Rate (bpm)",
+        age: "Age (years)",
+        sbp: "Systolic BP (mmHg)",
+        dbp: "Diastolic BP (mmHg)",
+        temp: "Oral Temp (°F)",
+        duration: "Symptom duration",
+        durationPh: "e.g. 4 days",
+        repro: "Reproductive Status",
+        reproNon: "Non-pregnant",
+        reproGest: "Gestational",
+        reproPost: "Postpartum",
+        reproPeri: "Perimenopause",
+        pulsePressure: "Pulse Pressure",
+        generateSbar: "Generate SBAR Passport",
+        benchmarks: "Benchmark cases",
+        safetyAlert: "Rule-based safety gate · demo",
+        awaitingIntake: "Awaiting patient intake",
+        awaitingHelp: "Complete vitals and a free-text complaint, then generate the SBAR passport. No result is shown until the safety gate runs.",
+        shockIndex: "Shock Index",
+        idle: "Idle",
+        urgencyTier: "Triage Urgency Tier",
+        hypothesis: "Gate triggered",
+        sbarTitle: "Physician Hand-Off Passport",
+        printPdf: "Print / Export Medical PDF",
+        sit: "Situation",
+        bg: "Background",
+        assess: "Assessment",
+        rec: "Recommendation",
+        sbarIdle: "No passport generated yet.",
+        lidKicker: "Experimental image tool",
+        lidTitle: "LidScan color signal preview",
+        lidHelp: "Explore a simple color-channel heuristic on an image. It does not identify anatomy or assess anemia; results are unvalidated and for demonstration only. Images are processed in this browser.",
+        lidUpload: "Capture or upload inner eyelid",
+        lidResult: "Color-channel preview",
+        lidIdle: "Idle. No image uploaded.",
+        mucosalRatio: "Mucosal pixel ratio",
+        pallorClass: "Experimental color band",
+        voiceKicker: "Experimental live audio",
+        voiceTitle: "Voice signal lab",
+        voiceHelp: "Visualizes the live microphone waveform and relative signal level only. It does not detect stress, depression, or any health condition. Starts only after microphone permission.",
+        startStream: "Start Live Stream",
+        stopStream: "Stop Live Stream",
+        status: "Status",
+        micIdle: "Microphone idle",
+        micLive: "Live capture active",
+        volumeDb: "Relative level (dBFS)",
+        sampleRate: "Sample rate",
+        disclaimer: "Hackathon prototype only. Not validated for clinical use and not a substitute for emergency services, medical examination, laboratory confirmation, or licensed clinical judgment.",
+        dictateOn: "Listening…",
+        siLow: "Low risk",
+        siWatch: "Watch",
+        siHigh: "High occult-shock risk",
+        invalidAnatomy: "This image could not be analyzed by the color heuristic. The tool does not verify anatomy.",
+        noSpeech: "Speech recognition is not available in this browser.",
+        micDenied: "Microphone is unavailable or permission was denied.",
+        apiError: "The safety gate could not be reached. Confirm the Flask service is running.",
+        noIntake: "Add a symptom description or at least one vital before running the demo gate.",
+        changedIntake: "Intake changed. Run the safety gate again to refresh this result.",
+        runningGate: "Running demo gate…",
+        invalidAge: "Please enter a valid age between 1 and 200 years."
+      },
+      hi: {
+        appTitle: "वैलिड8 नैदानिक पूर्व-त्रियाज",
+        appSubtitle: "गैर-नैदानिक निर्णय-सहायता प्रोटोटाइप",
+        tabTriage: "त्रियाज एवं एसबीएआर संक्षेप",
+        tabLid: "लिडस्कैन रंग पूर्वावलोकन",
+        tabVoice: "स्वर संकेत प्रयोगशाला",
+        reset: "रीसेट",
+        naturalIntake: "स्वाभाविक प्रविष्टि",
+        chiefComplaints: "मुख्य शिकायतें",
+        chiefHelp: "रोज़मर्रा की भाषा में अनुभव किए गए लक्षण लिखें या बोलें। निदान का चयन न करें।",
+        symptomsPh: "उदाहरण: चार दिन पूर्व प्रसव, पैड भीग रहे हैं, चक्कर आ रहे हैं...",
+        entities: "नैदानिक संकेत",
+        homeVitals: "घरेलू जीवन-संकेत",
+        heartRate: "हृदय गति (प्रति मिनट)",
+        age: "आयु (वर्ष)",
+        sbp: "सिस्टोलिक रक्तचाप (mmHg)",
+        dbp: "डायस्टोलिक रक्तचाप (mmHg)",
+        temp: "मौखिक तापमान (°F)",
+        duration: "लक्षण अवधि",
+        durationPh: "उदाहरण: 4 दिन",
+        repro: "प्रजनन स्थिति",
+        reproNon: "गर्भधारण नहीं",
+        reproGest: "गर्भावस्था",
+        reproPost: "प्रसवोत्तर",
+        reproPeri: "परिरजोनिवृत्ति",
+        pulsePressure: "नाड़ी दाब",
+        generateSbar: "एसबीएआर पासपोर्ट उत्पन्न करें",
+        benchmarks: "मानक परीक्षण मामले",
+        safetyAlert: "नियम-आधारित सुरक्षा द्वार · डेमो",
+        awaitingIntake: "रोगी प्रविष्टि की प्रतीक्षा",
+        awaitingHelp: "जीवन-संकेत और मुक्त-पाठ शिकायत पूर्ण कर एसबीएआर पासपोर्ट उत्पन्न करें। सुरक्षा द्वार चलने तक कोई परिणाम नहीं दिखेगा।",
+        shockIndex: "शॉक सूचकांक",
+        idle: "निष्क्रिय",
+        urgencyTier: "त्रियाज तात्कालिकता स्तर",
+        hypothesis: "सक्रिय सुरक्षा नियम",
+        sbarTitle: "चिकित्सक हस्तांतरण पासपोर्ट",
+        printPdf: "चिकित्सा पीडीएफ मुद्रित / निर्यात करें",
+        sit: "स्थिति",
+        bg: "पृष्ठभूमि",
+        assess: "मूल्यांकन",
+        rec: "अनुशंसा",
+        sbarIdle: "अभी कोई पासपोर्ट उत्पन्न नहीं हुआ है।",
+        lidKicker: "प्रायोगिक छवि उपकरण",
+        lidTitle: "लिडस्कैन रंग संकेत पूर्वावलोकन",
+        lidHelp: "चित्र पर एक सरल रंग-चैनल अनुमान देखें। यह शारीरिक रचना या रक्ताल्पता की पहचान नहीं करता; परिणाम अप्रमाणित और केवल प्रदर्शन हेतु हैं। चित्र इसी ब्राउज़र में संसाधित होते हैं।",
+        lidUpload: "भीतरी पलक का चित्र लें या अपलोड करें",
+        lidResult: "प्रायोगिक रंग-चैनल पूर्वावलोकन",
+        lidIdle: "निष्क्रिय। कोई चित्र अपलोड नहीं हुआ।",
+        mucosalRatio: "श्लेष्म पिक्सेल अनुपात",
+        pallorClass: "प्रायोगिक रंग श्रेणी",
+        voiceKicker: "प्रायोगिक लाइव ऑडियो",
+        voiceTitle: "स्वर संकेत प्रयोगशाला",
+        voiceHelp: "केवल लाइव माइक्रोफ़ोन तरंग और सापेक्ष संकेत स्तर दिखाता है। यह तनाव, अवसाद या किसी स्वास्थ्य स्थिति का पता नहीं लगाता। माइक्रोफ़ोन अनुमति के बाद ही शुरू होता है।",
+        startStream: "लाइव स्ट्रीम आरंभ करें",
+        stopStream: "लाइव स्ट्रीम रोकें",
+        status: "स्थिति",
+        micIdle: "माइक्रोफ़ोन निष्क्रिय",
+        micLive: "जीवंत ग्रहण सक्रिय",
+        volumeDb: "सापेक्ष स्तर (dBFS)",
+        sampleRate: "नमूना दर",
+        disclaimer: "केवल हैकाथॉन प्रोटोटाइप। नैदानिक उपयोग हेतु मान्य नहीं; आपातकालीन सेवाओं, चिकित्सकीय परीक्षण, प्रयोगशाला पुष्टि अथवा लाइसेंसशुदा चिकित्सकीय निर्णय का विकल्प नहीं है।",
+        dictateOn: "सुन रहा है…",
+        siLow: "निम्न जोखिम",
+        siWatch: "निगरानी",
+        siHigh: "उच्च गुप्त-शॉक जोखिम",
+        invalidAnatomy: "रंग अनुमान इस चित्र का विश्लेषण नहीं कर सका। यह उपकरण शारीरिक रचना की पुष्टि नहीं करता।",
+        noSpeech: "इस ब्राउज़र में वाक् पहचान उपलब्ध नहीं है।",
+        micDenied: "माइक्रोफ़ोन उपलब्ध नहीं है या अनुमति अस्वीकृत हुई।",
+        apiError: "सुरक्षा द्वार से संपर्क नहीं हो सका। फ्लास्क सेवा चालू है, यह सुनिश्चित करें।",
+        noIntake: "डेमो सुरक्षा नियम चलाने से पहले लक्षण विवरण या कम-से-कम एक जीवन-संकेत जोड़ें।",
+        changedIntake: "प्रविष्टि बदली है। परिणाम ताज़ा करने के लिए सुरक्षा नियम फिर चलाएँ।",
+        runningGate: "डेमो सुरक्षा नियम चल रहा है…",
+        invalidAge: "कृपया 1 से 200 वर्ष के बीच की वैध आयु दर्ज करें।"
+      }
+    };
+    const LEXICON = [
+      { id: "PADS", color: "bg-rose-100 text-rose-800", terms: ["pad", "pads", "soak", "soaking", "soaked"] },
+      { id: "BLEEDING", color: "bg-rose-100 text-rose-800", terms: ["bleed", "bleeding", "hemorrhage", "haemorrhage", "clots", "lochia", "flooding"] },
+      { id: "JAW PAIN", color: "bg-amber-100 text-amber-900", terms: ["jaw", "mandible"] },
+      { id: "SHOULDER", color: "bg-amber-100 text-amber-900", terms: ["shoulder", "scapula", "scapular"] },
+      { id: "INDIGESTION", color: "bg-amber-100 text-amber-900", terms: ["indigestion", "acidity", "reflux", "heartburn", "epigastric"] },
+      { id: "DYSPNEA", color: "bg-orange-100 text-orange-900", terms: ["dyspnea", "dyspnoea", "breathless", "shortness of breath", "short of breath", "cannot breathe", "can't breathe"] },
+      { id: "NAUSEA", color: "bg-orange-100 text-orange-900", terms: ["nausea", "nauseous", "vomit", "vomiting", "queasy"] },
+      { id: "FEVER", color: "bg-sky-100 text-sky-900", terms: ["fever", "pyrexia", "hot", "burning up", "temperature"] },
+      { id: "GI", color: "bg-sky-100 text-sky-900", terms: ["diarrhea", "diarrhoea", "stool", "abdomen", "abdominal", "stomach", "cramp", "typhoid", "enteric"] },
+      { id: "DIZZINESS", color: "bg-violet-100 text-violet-900", terms: ["dizzy", "dizziness", "faint", "lightheaded", "syncope"] },
+      { id: "POSTPARTUM", color: "bg-fuchsia-100 text-fuchsia-900", terms: ["delivery", "postpartum", "postnatal", "birth", "baby", "cesarean", "caesarean", "labour", "labor"] }
+    ];
+    const CASES = {
+      pph: {
+        symptoms: "I had my baby 4 days ago. Pads are soaking through every hour with clots, I feel faint and dizzy when I stand.",
+        hr: 118, sbp: 96, dbp: 62, temp: 98.4, age: 29, repro: "postpartum", duration: "4 days"
+      },
+      minoca: {
+        symptoms: "Jaw tightness and burning indigestion into the left shoulder, short of breath and nauseous for two hours.",
+        hr: 108, sbp: 128, dbp: 78, temp: 98.2, age: 54, repro: "perimenopause", duration: "2 hours"
+      },
+      enteric: {
+        symptoms: "High fever with abdominal cramps, loose stools and poor appetite for five days. I feel exhausted.",
+        hr: 82, sbp: 110, dbp: 70, temp: 103.1, age: 26, repro: "non-pregnant", duration: "5 days"
+      }
+    };
+    let lang = "en";
+    let recognition = null;
+    let dictating = false;
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let rafId = null;
+    let lastTriage = null;
+    let speechBase = "";
+    const $ = (id) => document.getElementById(id);
+    function t(key) {
+      return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+    }
+    function applyI18n() {
+      document.documentElement.lang = lang === "hi" ? "hi" : "en";
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+      });
+      $("lang-en").className = lang === "en" ? "text-tealink" : "font-medium text-slate-500";
+      $("lang-hi").className = lang === "hi" ? "text-tealink" : "font-medium text-slate-500";
+      const micLive = Boolean(micStream);
+      $("mic-btn").querySelector("span").textContent = micLive ? t("stopStream") : t("startStream");
+      if (lastTriage) {
+        const risk = siRisk(lastTriage.triage.shock_index);
+        $("si-badge").className = `inline-flex mt-2 text-[11px] font-bold uppercase rounded-full px-2 py-1 ${risk.cls}`;
+        $("si-badge").textContent = risk.label;
+      } else {
+        $("alert-title").textContent = t("awaitingIntake");
+        $("alert-detail").textContent = t("awaitingHelp");
+        $("si-badge").textContent = t("idle");
+        $("sbar-s").textContent = t("sbarIdle");
+      }
+      if (recognition) {
+        recognition.lang = lang === "hi" ? "hi-IN" : "en-US";
+      }
+    }
+
+    function cleanMedicalText(rawText) {
+      if (!rawText) return "";
+      if (rawText.includes("</") || rawText.includes("<script") || rawText.includes("function") || rawText.includes("payload()")) {
+        return "";
+      }
+      return rawText.toLowerCase();
+    }
+
+    function tokenize(text) {
+      const cleaned = cleanMedicalText(text);
+      const tray = $("chip-tray");
+      tray.innerHTML = "";
+      if (!cleaned) return;
+
+      const hits = [];
+      LEXICON.forEach((entry) => {
+        const hasMatch = entry.terms.some((term) => {
+          const regex = new RegExp(`\\b${term}\\b`, 'i');
+          return regex.test(cleaned);
+        });
+        if (hasMatch) {
+          hits.push(entry);
+        }
+      });
+
+      hits.forEach((entry) => {
+        const chip = document.createElement("span");
+        chip.className = `chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${entry.color}`;
+        chip.textContent = `Signal: ${entry.id}`;
+        tray.appendChild(chip);
+      });
+    }
+
+    function num(id) {
+      const raw = $(id).value;
+      if (raw === "" || raw === null) return null;
+      const value = Number(raw);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    function updateDerived() {
+      const sbp = num("sbp");
+      const dbp = num("dbp");
+      if (sbp === null || dbp === null) {
+        $("map-live").textContent = "—";
+        $("pp-live").textContent = "—";
+        return;
+      }
+      const map = dbp + (sbp - dbp) / 3;
+      const pp = sbp - dbp;
+      $("map-live").textContent = `${map.toFixed(1)} mmHg`;
+      $("pp-live").textContent = `${pp.toFixed(1)} mmHg`;
+    }
+
+    function payload() {
+      return {
+        symptoms: $("symptoms").value,
+        hr: num("hr"),
+        heart_rate: num("hr"),
+        sbp: num("sbp"),
+        dbp: num("dbp"),
+        temp: num("temp"),
+        temperature: num("temp"),
+        age: num("age"),
+        repro_status: $("repro").value,
+        reproductive_status: $("repro").value,
+        duration: $("duration").value,
+        symptom_duration: $("duration").value
+      };
+    }
+
+    function alertPalette(tier) {
+      if (tier === "P1 - Critical") {
+        return { box: "rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950", badge: "bg-rose-600 text-white" };
+      }
+      if (tier === "P1 - Emergent") {
+        return { box: "rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-amber-950", badge: "bg-amber-500 text-slate-900" };
+      }
+      if (tier === "P2 - Priority") {
+        return { box: "rounded-2xl border border-sky-300 bg-sky-50 px-5 py-4 text-sky-950", badge: "bg-sky-600 text-white" };
+      }
+      return { box: "rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-emerald-950", badge: "bg-emerald-600 text-white" };
+    }
+
+    function siRisk(si) {
+      if (si === null || si === undefined) return { label: t("idle"), cls: "bg-slate-100 text-slate-600" };
+      if (si >= 0.9) return { label: t("siHigh"), cls: "bg-rose-600 text-white" };
+      if (si >= 0.7) return { label: t("siWatch"), cls: "bg-amber-200 text-amber-950" };
+      return { label: t("siLow"), cls: "bg-emerald-100 text-emerald-800" };
+    }
+
+    function renderTriage(bundle) {
+      lastTriage = bundle;
+      const triage = bundle.triage;
+      const sbar = bundle.sbar;
+      const palette = alertPalette(triage.urgency_tier);
+      const banner = $("alert-banner");
+      banner.className = palette.box;
+      $("alert-title").textContent = triage.alert_title;
+      $("alert-detail").textContent = triage.alert_detail;
+      $("si-value").textContent = triage.shock_index === null || triage.shock_index === undefined ? "—" : Number(triage.shock_index).toFixed(3);
+      const risk = siRisk(triage.shock_index);
+      $("si-badge").className = `inline-flex mt-2 text-[11px] font-bold uppercase rounded-full px-2 py-1 ${risk.cls}`;
+      $("si-badge").textContent = risk.label;
+      $("tier-value").textContent = triage.urgency_tier;
+      $("category-value").textContent = triage.category;
+      $("sbar-s").textContent = sbar.situation;
+      $("sbar-b").textContent = sbar.background;
+      $("sbar-a").textContent = sbar.assessment;
+      $("sbar-r").textContent = Array.isArray(sbar.recommendation) ? sbar.recommendation.join(" ") : sbar.recommendation;
+      $("print-meta").textContent = `${new Date().toLocaleString()} · ${triage.category} · ${triage.urgency_tier}`;
+      $("print-alert").textContent = `${triage.alert_title} — ${triage.alert_detail}`;
+      $("print-s").textContent = sbar.situation;
+      $("print-b").textContent = sbar.background;
+      $("print-a").textContent = sbar.assessment;
+      $("print-r").textContent = Array.isArray(sbar.recommendation) ? sbar.recommendation.join(" ") : sbar.recommendation;
+    }
+
+    function testWord(text, term) {
+      return new RegExp(`\\b${term}\\b`, 'i').test(text);
+    }
+
+    function runLocalRules(intake) {
+      const hr = Number(intake.hr || intake.heart_rate || 80);
+      const sbp = Number(intake.sbp || 120);
+      const dbp = Number(intake.dbp || 80);
+      const temp = Number(intake.temp || intake.temperature || 98.6);
+      const age = intake.age || 28;
+      const status = String(intake.repro_status || intake.reproductive_status || "none").toLowerCase();
+      const rawSymptoms = String(intake.symptoms || "");
+      const symptoms = cleanMedicalText(rawSymptoms);
+      const duration = intake.duration || intake.symptom_duration || "4 days";
+
+      const shock_index = sbp > 0 ? Number((hr / sbp).toFixed(3)) : 0;
+      
+      const hasBleed = testWord(symptoms, "soak") || testWord(symptoms, "pads") || testWord(symptoms, "bleed") || testWord(symptoms, "clots");
+      const is_obstetric_shock = (status.includes("postpartum") || status.includes("gestational") || status.includes("pregnant")) && (shock_index >= 0.9 || hasBleed);
+      
+      const hasCardiacWords = testWord(symptoms, "jaw") || testWord(symptoms, "shoulder") || testWord(symptoms, "scapular") || testWord(symptoms, "indigestion") || testWord(symptoms, "acidity");
+      const hasCardiacModifiers = hr > 95 || testWord(symptoms, "breath") || testWord(symptoms, "dizziness") || testWord(symptoms, "nausea");
+      const is_cardiac_alert = hasCardiacWords && hasCardiacModifiers;
+
+      const hasFeverWords = testWord(symptoms, "fever") || testWord(symptoms, "pyrexia") || testWord(symptoms, "bukhar");
+      const hasGIWords = testWord(symptoms, "stool") || testWord(symptoms, "cramp") || testWord(symptoms, "diarrhea");
+      const is_typhoid_alert = temp >= 102.5 && hr < 90 && (hasFeverWords || hasGIWords);
+
+      let triage_result;
+      if (is_obstetric_shock) {
+        triage_result = {
+          urgency_tier: "P1 - Critical",
+          alert_title: "CRITICAL: Elevated Obstetric Shock Index",
+          alert_detail: `Shock Index is ${shock_index} (≥0.9). Compensatory vasoconstriction masks falling BP. Risk of occult internal hemorrhage.`,
+          shock_index: shock_index,
+          category: "OBSTETRIC_SHOCK"
+        };
+      } else if (is_cardiac_alert) {
+        triage_result = {
+          urgency_tier: "P1 - Emergent",
+          alert_title: "ISCHEMIC ALERT: Atypical Female Cardiac Pattern",
+          alert_detail: "Non-crushing jaw/scapular pain with dyspnea. Immediate 12-lead ECG and serial hs-cTnI assays recommended.",
+          shock_index: shock_index,
+          category: "CARDIAC_MINOCA"
+        };
+      } else if (is_typhoid_alert) {
+        triage_result = {
+          urgency_tier: "P2 - Priority",
+          alert_title: "ACUTE INFECTION: Relative Bradycardia (Faget's Sign)",
+          alert_detail: `Heart rate (${hr} bpm) dissociated from high fever (${temp}°F). Suggests enteric pathogen; screen before empirical antibiotics.`,
+          shock_index: shock_index,
+          category: "ENTERIC_FEVER"
+        };
+      } else {
+        triage_result = {
+          urgency_tier: "P3 - Standard",
+          alert_title: "Hemodynamics Within Guardrails",
+          alert_detail: "No immediate overt shock indices detected. Proceed with standard outpatient consultation brief.",
+          shock_index: shock_index,
+          category: "STANDARD_TRIAGE"
+        };
+      }
+
+      let assessment = "Sub-acute physiological presentation without acute hemodynamic crisis flags.";
+      let recs = "Routine primary care consultation panel. Maintain longitudinal symptom tracking in Valid8 health passport.";
+      if (triage_result.category === "OBSTETRIC_SHOCK") {
+        assessment = "High vulnerability for occult hemodynamic decompensation. Compensatory vasoconstriction suspected.";
+        recs = "STAT bedside pelvic ultrasound to rule out retained products (RPOC). Complete blood count (CBC) with baseline hematocrit/hemoglobin and coagulation screen. Establish two wide-bore IV access lines; continuous vital telemetry.";
+      } else if (triage_result.category === "CARDIAC_MINOCA") {
+        assessment = "Symptom cluster exhibits high concordance with atypical female acute coronary syndromes (MINOCA/INOCA).";
+        recs = "Immediate 12-lead Electrocardiogram (ECG) with posterior leads. Serial high-sensitivity Cardiac Troponin (hs-cTnI) assays. Do not dismiss as gastrointestinal acid reflux prior to complete cardiac rule-out.";
+      } else if (triage_result.category === "ENTERIC_FEVER") {
+        assessment = "Pyrexia trajectory and pulse-temperature dissociation suggest probable enteric/systemic pathogen invasion.";
+        recs = "Blood Culture & Sensitivity prior to empirical broad-spectrum antibiotics to limit AMR. Typhoid serology (Widal) and stool routine microscopy. Oral electrolyte hydration monitoring protocol.";
+      }
+
+      const sbar_result = {
+        situation: `Patient is a ${age}-year-old female (${status.toUpperCase()}) presenting with acute symptoms over a duration of ${duration}. Chief complaint: "${rawSymptoms || 'None provided'}".`,
+        background: `Captured Vitals: HR ${hr} bpm, BP ${sbp}/${dbp} mmHg, Temp ${temp}°F. Computed Shock Index = ${shock_index}.`,
+        assessment: assessment,
+        recommendation: recs
+      };
+
+      return { triage: triage_result, sbar: sbar_result };
+    }
+
+    async function runTriage() {
+      const ageRaw = $("age").value.trim();
+      const ageNum = Number(ageRaw);
+      if (ageRaw !== "" && (isNaN(ageNum) || ageNum <= 0 || ageNum > 200)) {
+        $("alert-banner").className = "rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950";
+        $("alert-title").textContent = t("invalidAge");
+        $("alert-detail").textContent = lang === "hi" 
+          ? "कृपया 1 से 200 वर्ष के बीच की वैध सकारात्मक आयु दर्ज करें।" 
+          : "Please enter a valid positive age between 1 and 200 years.";
+        $("age").classList.add("border-rose-500", "bg-rose-50");
+        $("age").focus();
+        return;
+      }
+      $("age").classList.remove("border-rose-500", "bg-rose-50");
+
+      const intake = payload();
+      const cleanComp = cleanMedicalText(intake.symptoms);
+      const hasComplaint = cleanComp.trim().length > 0;
+      const hasVitals = [intake.heart_rate, intake.sbp, intake.dbp, intake.temperature]
+        .some((value) => value !== null);
+
+      if (!hasComplaint && !hasVitals) {
+        $("alert-banner").className = "rounded-2xl border border-slate-200 bg-white px-5 py-4";
+        $("alert-title").textContent = t("noIntake");
+        $("alert-detail").textContent = t("awaitingHelp");
+        $("symptoms").focus();
+        return;
+      }
+
+      const runButton = $("run-triage");
+      runButton.disabled = true;
+      $("run-triage-label").textContent = t("runningGate");
+
+      try {
+        const response = await fetch("/api/triage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(intake)
+        });
+        if (!response.ok) throw new Error("Backend response error");
+        const data = await response.json();
+        renderTriage(data);
+      } catch (error) {
+        const fallbackData = runLocalRules(intake);
+        renderTriage(fallbackData);
+      } finally {
+        runButton.disabled = false;
+        $("run-triage-label").textContent = t("generateSbar");
+      }
+    }
+
+    function fillCase(key) {
+      const item = CASES[key];
+      $("symptoms").value = item.symptoms;
+      $("hr").value = item.hr;
+      $("sbp").value = item.sbp;
+      $("dbp").value = item.dbp;
+      $("temp").value = item.temp;
+      $("age").value = item.age;
+      $("age").classList.remove("border-rose-500", "bg-rose-50");
+      $("repro").value = item.repro;
+      $("duration").value = item.duration;
+      document.querySelectorAll("[data-case]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.getAttribute("data-case") === key));
+      });
+      tokenize(item.symptoms);
+      updateDerived();
+      runTriage();
+    }
+
+    function resetForm() {
+      $("symptoms").value = "";
+      ["hr", "sbp", "dbp", "temp", "age", "duration"].forEach((id) => { $(id).value = ""; });
+      $("age").classList.remove("border-rose-500", "bg-rose-50");
+      $("repro").value = "non-pregnant";
+      document.querySelectorAll("[data-case]").forEach((button) => button.setAttribute("aria-pressed", "false"));
+      tokenize("");
+      updateDerived();
+      lastTriage = null;
+      $("alert-banner").className = "rounded-2xl border border-slate-200 bg-white px-5 py-4";
+      $("alert-title").textContent = t("awaitingIntake");
+      $("alert-detail").textContent = t("awaitingHelp");
+      $("si-value").textContent = "—";
+      $("si-badge").className = "inline-flex mt-2 text-[11px] font-bold uppercase rounded-full bg-slate-100 px-2 py-1";
+      $("si-badge").textContent = t("idle");
+      $("tier-value").textContent = "—";
+      $("category-value").textContent = "—";
+      $("sbar-s").textContent = t("sbarIdle");
+      $("sbar-b").textContent = "—";
+      $("sbar-a").textContent = "—";
+      $("sbar-r").textContent = "—";
+      resetLid();
+      stopMic(true);
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
+      $("panel-" + name).classList.remove("hidden");
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        const active = btn.getAttribute("data-tab") === name;
+        btn.setAttribute("aria-selected", String(active));
+        btn.className = active
+          ? "tab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white text-tealink shadow-sm"
+          : "tab-btn px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900";
+      });
+    }
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const delta = max - min;
+      let h = 0;
+      if (delta !== 0) {
+        if (max === r) h = ((g - b) / delta) % 6;
+        else if (max === g) h = (b - r) / delta + 2;
+        else h = (r - g) / delta + 4;
+        h *= 60;
+        if (h < 0) h += 360;
+      }
+      const s = max === 0 ? 0 : delta / max;
+      return { h, s, v: max };
+    }
+
+    function resetLid() {
+      $("lid-file").value = "";
+      $("lid-preview").classList.add("hidden");
+      $("lid-preview").removeAttribute("src");
+      $("lid-idle").classList.remove("hidden");
+      $("lid-error").classList.add("hidden");
+      $("lid-ok").classList.add("hidden");
+    }
+
+    function analyzeEyelid(image) {
+      const canvas = $("lid-work");
+      const maxWidth = 360;
+      const scale = Math.min(1, maxWidth / image.width);
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(image, 0, 0, width, height);
+      const pixels = ctx.getImageData(0, 0, width, height).data;
+      const total = width * height;
+      let mucosal = 0;
+      let dark = 0;
+      let bright = 0;
+      let rSum = 0;
+      let gSum = 0;
+      let bSum = 0;
+      let uniqueBuckets = new Set();
+      for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (lum < 22) dark += 1;
+        if (lum > 246) bright += 1;
+        uniqueBuckets.add(`${r >> 4}-${g >> 4}-${b >> 4}`);
+        const hsv = rgbToHsv(r, g, b);
+        const redDominant = r > g + 8 && r > b + 8;
+        const hueOk = hsv.h <= 45 || hsv.h >= 330;
+        const satOk = hsv.s >= 0.12 && hsv.s <= 0.95;
+        const valOk = hsv.v >= 0.18 && hsv.v <= 0.97;
+        if (redDominant && hueOk && satOk && valOk) {
+          mucosal += 1;
+          rSum += r;
+          gSum += g;
+          bSum += b;
+        }
+      }
+      const mucosalRatio = mucosal / total;
+      const darkRatio = dark / total;
+      const brightRatio = bright / total;
+      const tooGraphic = uniqueBuckets.size < 18 && mucosalRatio < 0.35;
+      const valid = mucosalRatio >= 0.25 && darkRatio < 0.72 && brightRatio < 0.78 && !tooGraphic && mucosal > 40;
+      $("lid-idle").classList.add("hidden");
+      if (!valid) {
+        $("lid-ok").classList.add("hidden");
+        $("lid-error").classList.remove("hidden");
+        $("lid-error").textContent = t("invalidAnatomy");
+        return;
+      }
+      const rAvg = rSum / mucosal;
+      const gAvg = gSum / mucosal;
+      const bAvg = bSum / mucosal;
+      const ei = rAvg / ((gAvg + bAvg) / 2);
+      let grade;
+      let note;
+      if (ei >= 1.55) {
+        grade = lang === "hi" ? "रंग बैंड 1 · उच्च लाल-चैनल अनुपात" : "Color band 1 · higher red-channel ratio";
+        note = lang === "hi" ? "केवल प्रदर्शन हेतु रंग अनुपात; इसका नैदानिक अर्थ स्थापित नहीं है।" : "Color ratio for demonstration only; no clinical meaning is established.";
+      } else if (ei >= 1.35) {
+        grade = lang === "hi" ? "रंग बैंड 2 · मध्यम-उच्च अनुपात" : "Color band 2 · mid-high ratio";
+        note = lang === "hi" ? "यह अनुमान रक्ताल्पता या हीमोग्लोबिन नहीं मापता।" : "This heuristic does not measure anemia or hemoglobin.";
+      } else if (ei >= 1.15) {
+        grade = lang === "hi" ? "रंग बैंड 3 · मध्यम-निम्न अनुपात" : "Color band 3 · mid-low ratio";
+        note = lang === "hi" ? "यह अनुमान रक्ताल्पता या हीमोग्लोबिन नहीं मापता।" : "This heuristic does not measure anemia or hemoglobin.";
+      } else {
+        grade = lang === "hi" ? "रंग बैंड 4 · निम्न लाल-चैनल अनुपात" : "Color band 4 · lower red-channel ratio";
+        note = lang === "hi" ? "केवल प्रदर्शन हेतु रंग अनुपात; इसका नैदानिक अर्थ स्थापित नहीं है।" : "Color ratio for demonstration only; no clinical meaning is established.";
+      }
+      $("lid-error").classList.add("hidden");
+      $("lid-ok").classList.remove("hidden");
+      $("ei-value").textContent = ei.toFixed(3);
+      $("mucosal-value").textContent = `${(mucosalRatio * 100).toFixed(1)}%`;
+      $("pallor-class").textContent = grade;
+      $("pallor-note").textContent = note;
+    }
+
+    function onLidFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) {
+        resetLid();
+        return;
+      }
+      const image = new Image();
+      const url = URL.createObjectURL(file);
+      image.onload = () => {
+        $("lid-preview").src = url;
+        $("lid-preview").classList.remove("hidden");
+        analyzeEyelid(image);
+      };
+      image.onerror = () => {
+        $("lid-idle").classList.add("hidden");
+        $("lid-ok").classList.add("hidden");
+        $("lid-error").classList.remove("hidden");
+        $("lid-error").textContent = t("invalidAnatomy");
+        URL.revokeObjectURL(url);
+      };
+      image.src = url;
+    }
+
+    function paintIdleScope() {
+      const canvas = $("scope-canvas");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width = canvas.clientWidth || 800;
+      const height = canvas.height = 224;
+      ctx.fillStyle = "#0b1220";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+    }
+
+    function drawScope() {
+      if (!analyser) return;
+      const canvas = $("scope-canvas");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width = canvas.clientWidth || 800;
+      const height = canvas.height = 224;
+      const buffer = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(buffer);
+      let sumSquares = 0;
+      for (let i = 0; i < buffer.length; i += 1) {
+        const centered = (buffer[i] - 128) / 128;
+        sumSquares += centered * centered;
+      }
+      const rms = Math.sqrt(sumSquares / buffer.length);
+      const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+      $("rms-value").textContent = rms.toFixed(3);
+      $("db-value").textContent = Number.isFinite(db) ? `${db.toFixed(1)} dB` : "−∞ dB";
+      ctx.fillStyle = "#0b1220";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "#0e6b6c";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const slice = width / buffer.length;
+      for (let i = 0; i < buffer.length; i += 1) {
+        const x = i * slice;
+        const y = (buffer[i] / 255) * height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      rafId = requestAnimationFrame(drawScope);
+    }
+
+    async function startMic() {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        $("sr-value").textContent = `${audioContext.sampleRate} Hz`;
+        $("mic-status").textContent = t("micLive");
+        $("mic-btn").querySelector("span").textContent = t("stopStream");
+        $("mic-btn").querySelector("i").className = "fa-solid fa-stop mr-2";
+        drawScope();
+      } catch (error) {
+        $("mic-status").textContent = t("micDenied");
+        $("db-value").textContent = "— dB";
+      }
+    }
+
+    function stopMic(fromReset) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach((track) => track.stop());
+        micStream = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+      analyser = null;
+      $("mic-status").textContent = t("micIdle");
+      $("mic-btn").querySelector("span").textContent = t("startStream");
+      $("mic-btn").querySelector("i").className = "fa-solid fa-play mr-2";
+      if (!fromReset) {
+        $("db-value").textContent = "— dB";
+        $("rms-value").textContent = "—";
+        $("sr-value").textContent = "—";
+      } else {
+        $("db-value").textContent = "— dB";
+        $("rms-value").textContent = "—";
+        $("sr-value").textContent = "—";
+      }
+      paintIdleScope();
+    }
+
+    function setupSpeech() {
+      const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Speech) return null;
+      const engine = new Speech();
+      engine.continuous = true;
+      engine.interimResults = true;
+      engine.lang = lang === "hi" ? "hi-IN" : "en-US";
+      engine.onresult = (event) => {
+        let finals = "";
+        let interim = "";
+        for (let i = 0; i < event.results.length; i += 1) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finals += ` ${transcript}`;
+          else interim += ` ${transcript}`;
+        }
+        $("symptoms").value = `${speechBase} ${finals} ${interim}`.replace(/\s+/g, " ").trim();
+        tokenize($("symptoms").value);
+      };
+      engine.onend = () => {
+        dictating = false;
+        $("dictate-btn").classList.remove("ring-4", "ring-rose-300");
+      };
+      return engine;
+    }
+
+    function toggleDictate() {
+      if (!recognition) {
+        recognition = setupSpeech();
+      }
+      if (!recognition) {
+        $("alert-detail").textContent = t("noSpeech");
+        return;
+      }
+      if (dictating) {
+        recognition.stop();
+        dictating = false;
+        $("dictate-btn").classList.remove("ring-4", "ring-rose-300");
+        return;
+      }
+      recognition.lang = lang === "hi" ? "hi-IN" : "en-US";
+      speechBase = $("symptoms").value.trim();
+      recognition.start();
+      dictating = true;
+      $("dictate-btn").classList.add("ring-4", "ring-rose-300");
+    }
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
+      btn.addEventListener("keydown", (event) => {
+        const tabs = [...document.querySelectorAll(".tab-btn")];
+        const index = tabs.indexOf(btn);
+        let nextIndex = index;
+        if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+        else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = tabs.length - 1;
+        else return;
+        event.preventDefault();
+        switchTab(tabs[nextIndex].getAttribute("data-tab"));
+        tabs[nextIndex].focus();
+      });
+    });
+
+    $("lang-toggle").addEventListener("click", () => {
+      lang = lang === "en" ? "hi" : "en";
+      applyI18n();
+      tokenize($("symptoms").value);
+    });
+
+    $("reset-btn").addEventListener("click", resetForm);
+    $("symptoms").addEventListener("input", (event) => tokenize(event.target.value));
+
+    // Live validation and clamping for age input (strictly 1 to 200)
+    $("age").addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      if ((val < 1 || val > 200) && e.target.value.trim() !== "") {
+        e.target.classList.add("border-rose-500", "bg-rose-50");
+      } else {
+        e.target.classList.remove("border-rose-500", "bg-rose-50");
+      }
+    });
+
+    $("age").addEventListener("blur", (e) => {
+      const val = parseFloat(e.target.value);
+      if (e.target.value.trim() !== "") {
+        if (isNaN(val) || val <= 0) {
+          e.target.value = 1;
+        } else if (val > 200) {
+          e.target.value = 200;
+        }
+        e.target.classList.remove("border-rose-500", "bg-rose-50");
+        updateDerived();
+      }
+    });
+
+    ["hr", "sbp", "dbp", "temp", "age"].forEach((id) => $(id).addEventListener("input", updateDerived));
+    $("run-triage").addEventListener("click", runTriage);
+    $("print-btn").addEventListener("click", () => window.print());
+    $("dictate-btn").addEventListener("click", toggleDictate);
+    $("lid-file").addEventListener("change", onLidFile);
+    $("mic-btn").addEventListener("click", () => {
+      if (micStream) stopMic(false);
+      else startMic();
+    });
+
+    document.querySelectorAll("[data-case]").forEach((btn) => {
+      btn.addEventListener("click", () => fillCase(btn.getAttribute("data-case")));
+    });
+
+    window.addEventListener("resize", () => {
+      if (analyser) return;
+      paintIdleScope();
+    });
+
+    applyI18n();
+    tokenize("");
+    updateDerived();
+    paintIdleScope();
+  </script>
+</body>
+</html>
